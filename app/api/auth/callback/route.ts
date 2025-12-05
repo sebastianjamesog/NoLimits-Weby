@@ -68,11 +68,27 @@ export async function GET(request: NextRequest) {
     const hasRole = await checkUserRoleInGuild(botToken, guildId, discordUser.id, requiredRoleId)
 
     if (!hasRole) {
-      console.warn(`User ${discordUser.id} does not have required role ${requiredRoleId}`)
-      return NextResponse.json(
-        { error: "You do not have the required role to access this server" },
-        { status: 403 }
-      )
+      console.warn(`User ${discordUser.id} does not have required role ${requiredRoleId}. Redirecting to whitelist.`)
+      
+      // Create temporary JWT token for whitelist quiz
+      const jwtToken = await createToken({
+        id: discordUser.id,
+        username: discordUser.username,
+        avatar: discordUser.avatar || undefined,
+      })
+      
+      // Redirect to whitelist quiz with token in cookie
+      const response = NextResponse.redirect(new URL("/whitelist", request.url))
+      response.cookies.set({
+        name: "auth-token",
+        value: jwtToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      })
+      
+      return response
     }
 
     console.log(`User ${discordUser.id} authorized with required role`)
