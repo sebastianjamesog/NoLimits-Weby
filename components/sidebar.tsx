@@ -1,13 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, FileText, Server, Trophy, ShoppingCart, Headphones, Menu, X, LogOut } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { userData } from "@/lib/data"
+
+interface UserData {
+  id: string
+  username: string
+  avatar?: string
+}
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -21,6 +26,29 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [user, setUser] = useState<UserData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Fetch authenticated user data
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user) {
+            setUser(data.user)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [])
 
   const handleLogout = () => {
     window.location.href = "/"
@@ -95,14 +123,16 @@ export function Sidebar() {
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
             <Avatar className="h-8 w-8 ring-2 ring-[#3b9eff]">
-              <AvatarImage src="/gamer-avatar.png" />
-              <AvatarFallback className="bg-secondary text-foreground">A</AvatarFallback>
+              {user?.avatar ? (
+                <AvatarImage src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`} />
+              ) : null}
+              <AvatarFallback className="bg-secondary text-foreground">
+                {user?.username?.charAt(0).toUpperCase() || "U"}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{userData.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {pathname === "/leaderboard" ? `Level ${userData.level}` : `Player ID: ${userData.playerId}`}
-              </p>
+              <p className="text-sm font-medium text-foreground truncate">{user?.username || "Loading..."}</p>
+              
             </div>
           </div>
           <Button onClick={handleLogout} variant="destructive" className="w-full text-xs sm:text-sm">

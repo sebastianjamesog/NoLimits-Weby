@@ -1,15 +1,45 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Header } from "@/components/header"
 import { Clock, DollarSign, Briefcase, Users, Trophy, Crown } from "lucide-react"
 import { userData, recentOnlinePlayers, mostActivePlayers, richestPlayers } from "@/lib/data"
 
+interface UserData {
+  id: string
+  username: string
+  avatar?: string
+}
+
 export default function DashboardPage() {
+  const [user, setUser] = useState<UserData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Fetch authenticated user data
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user) {
+            setUser(data.user)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [])
   return (
     <div>
-      <Header title="Dashboard" subtitle={`Welcome back, ${userData.name}`} />
+      <Header title="Dashboard" subtitle={`Welcome back, ${user?.username || "Loading..."}`} />
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
